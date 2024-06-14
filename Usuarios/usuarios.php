@@ -18,15 +18,15 @@ switch ($request_method) {
         actualizarUsuario();
         break;
 
-    case 'POST':            
+    case 'POST':
         insertarUsuario();
         break;
-                
+
     case 'DELETE':
         http_response_code(200);
         borrarUsuario();
         break;
-                    
+
     case 'GET':
         if (!empty($_GET["idusuario"])) {
             $idusuario = intval($_GET["idusuario"]);
@@ -35,11 +35,11 @@ switch ($request_method) {
             obtenerUsuarios();
         }
         break;
-                                            
+
     case 'OPTIONS':
         http_response_code(200);
         break;
-                            
+
     default:
         http_response_code(405);
         echo json_encode(array("message" => "Method not allowed"));
@@ -49,42 +49,68 @@ switch ($request_method) {
 function obtenerUsuarios() {
     global $db;
 
-    $query = "SELECT `idusuario`, `nombre`, `email` FROM `usuarios`";
-    $stm = $db->prepare($query);
-    $stm->execute();
+    try {
+        $query = "SELECT `idusuario`, `nombre`, `email` FROM `Usuarios_Byron`";
+        $stm = $db->prepare($query);
+        $stm->execute();
 
-    $resultado = $stm->fetchAll(PDO::FETCH_ASSOC);
+        $resultado = $stm->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode($resultado);
+        echo json_encode($resultado);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al obtener usuarios", "error" => $e->getMessage()));
+    }
 }
 
 function obtenerUsuario($idusuario) {
     global $db;
 
-    $query = "SELECT `idusuario`, `nombre`, `email` FROM `usuarios` WHERE `idusuario` = ?";
-    $stm = $db->prepare($query);            
-    $stm->bindParam(1, $idusuario);
-    $stm->execute();
+    try {
+        $query = "SELECT `idusuario`, `nombre`, `email` FROM `Usuarios_Byron` WHERE `idusuario` = ?";
+        $stm = $db->prepare($query);
+        $stm->bindParam(1, $idusuario);
+        $stm->execute();
 
-    $resultado = $stm->fetch(PDO::FETCH_ASSOC);
+        $resultado = $stm->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode($resultado);
+        if ($resultado) {
+            echo json_encode($resultado);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "Usuario no encontrado"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al obtener el usuario", "error" => $e->getMessage()));
+    }
 }
 
 function insertarUsuario() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "INSERT INTO `usuarios` (`nombre`, `email`, `password`) VALUES (:nombre, :email, :password)";
-    $stm = $db->prepare($query);            
-    $stm->bindParam(":nombre", $data->nombre);
-    $stm->bindParam(":email", $data->email);
-    $stm->bindParam(":password", $data->password);
+    if (empty($data->nombre) || empty($data->email) || empty($data->password)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "Datos incompletos"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Usuario creado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Usuario no creado", "code" => "danger"));
+    try {
+        $query = "INSERT INTO `Usuarios_Byron` (`nombre`, `email`, `password`) VALUES (:nombre, :email, :password)";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":nombre", $data->nombre);
+        $stm->bindParam(":email", $data->email);
+        $stm->bindParam(":password", $data->password);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Usuario creado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Usuario no creado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al crear el usuario", "error" => $e->getMessage()));
     }
 }
 
@@ -92,17 +118,28 @@ function actualizarUsuario() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "UPDATE `usuarios` SET `nombre` = :nombre, `email` = :email, `password` = :password WHERE `idusuario` = :idusuario";
-    $stm = $db->prepare($query);            
-    $stm->bindParam(":idusuario", $data->idusuario);
-    $stm->bindParam(":nombre", $data->nombre);
-    $stm->bindParam(":email", $data->email);
-    $stm->bindParam(":password", $data->password);
+    if (empty($data->idusuario) || empty($data->nombre) || empty($data->email) || empty($data->password)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "Datos incompletos"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Usuario actualizado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Usuario no actualizado", "code" => "danger"));
+    try {
+        $query = "UPDATE `Usuarios_Byron` SET `nombre` = :nombre, `email` = :email, `password` = :password WHERE `idusuario` = :idusuario";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":idusuario", $data->idusuario);
+        $stm->bindParam(":nombre", $data->nombre);
+        $stm->bindParam(":email", $data->email);
+        $stm->bindParam(":password", $data->password);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Usuario actualizado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Usuario no actualizado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al actualizar el usuario", "error" => $e->getMessage()));
     }
 }
 
@@ -110,14 +147,25 @@ function borrarUsuario() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "DELETE FROM `usuarios` WHERE `idusuario` = :idusuario";
-    $stm = $db->prepare($query);            
-    $stm->bindParam(":idusuario", $data->idusuario);
+    if (empty($data->idusuario)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "ID de usuario no proporcionado"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Usuario eliminado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Usuario no eliminado", "code" => "danger"));
+    try {
+        $query = "DELETE FROM `Usuarios_Byron` WHERE `idusuario` = :idusuario";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":idusuario", $data->idusuario);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Usuario eliminado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Usuario no eliminado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al eliminar el usuario", "error" => $e->getMessage()));
     }
 }
 ?>

@@ -10,7 +10,6 @@ CREATE TABLE Usuarios (
     nombre NVARCHAR(255) NOT NULL,
     email NVARCHAR(255) UNIQUE NOT NULL,
     password NVARCHAR(255) NOT NULL,
-    rol NVARCHAR(50)
 );
 
 -- Crear la tabla Proveedores
