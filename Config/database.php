@@ -8,7 +8,6 @@
         private $database =  "u484426513_multimedios022";
 
 
-
         public $conectors;
 
         public function obtenerConn(){

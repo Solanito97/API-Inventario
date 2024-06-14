@@ -1,79 +1,128 @@
 <?php
- header('Access-Control-Allow-Origin: *');
- header('Content-Type: application/json; charset=utf-8');
- header('Access-Control-Allow-Methods: PUT, POST, DELETE, GET, OPTIONS');
- header('Access-Control-Max-Age: 3600');
- header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Origin, Authorization, X-Requested-With');
 
- include_once '../config/database.php';
+header('Access-Control-Allow-Origin: *');
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Methods: PUT, POST, DELETE, GET, OPTIONS');
+header('Access-Control-Max-Age: 3600');
+header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Origin, Authorization, X-Requested-With');
 
- $database = new DatabasesConexion();
- $db = $database->obtenerConn();
+include_once '../config/database.php';
 
- $request_method = $_SERVER["REQUEST_METHOD"];
-
-class Proveedores {
-    private $conn;
-    private $table_name = "Proveedores";
-
-    public function __construct($db) {
-        $this->conn = $db;
-    }
-
-    public function get() {
-        $query = "SELECT * FROM " . $this->table_name;
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($providers);
-    }
-
-    public function post() {
-        $data = json_decode(file_get_contents("php://input"));
-        $query = "INSERT INTO " . $this->table_name . " (nombre, contacto, direccion, creado_por, modificado_por) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute([$data->nombre, $data->contacto, $data->direccion, $data->creado_por, $data->modificado_por]);
-        echo json_encode(["message" => "Proveedor creado"]);
-    }
-
-    public function put() {
-        $data = json_decode(file_get_contents("php://input"));
-        $query = "UPDATE " . $this->table_name . " SET nombre = ?, contacto = ?, direccion = ?, modificado_por = ? WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute([$data->nombre, $data->contacto, $data->direccion, $data->modificado_por, $data->id]);
-        echo json_encode(["message" => "Proveedor actualizado"]);
-    }
-
-    public function delete() {
-        $data = json_decode(file_get_contents("php://input"));
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute([$data->id]);
-        echo json_encode(["message" => "Proveedor eliminado"]);
-    }
-}
-
-$database = new Database();
-$db = $database->getConnection();
-$provider = new Proveedores($db);
+$database = new DatabasesConexion();
+$db = $database->obtenerConn();
 
 $request_method = $_SERVER["REQUEST_METHOD"];
 
-switch($request_method) {
-    case 'GET':
-        $provider->get();
-        break;
-    case 'POST':
-        $provider->post();
-        break;
+switch ($request_method) {
     case 'PUT':
-        $provider->put();
+        http_response_code(200);
+        actualizarProveedor();
         break;
+
+    case 'POST':
+        insertarProveedor();
+        break;
+
     case 'DELETE':
-        $provider->delete();
+        http_response_code(200);
+        borrarProveedor();
         break;
+
+    case 'GET':
+        if (!empty($_GET["idProveedores"])) {
+            $idProveedores = intval($_GET["idProveedores"]);
+            obtenerProveedor($idProveedores);
+        } else {
+            obtenerProveedores();
+        }
+        break;
+
+    case 'OPTIONS':
+        http_response_code(200);
+        break;
+
     default:
-        header("HTTP/1.0 405 Method Not Allowed");
+        http_response_code(405);
+        echo json_encode(array("message" => "Method not allowed"));
         break;
 }
+
+function obtenerProveedores() {
+    global $db;
+
+    $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores`";
+    $stm = $db->prepare($query);
+    $stm->execute();
+
+    $resultado = $stm->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode($resultado);
+}
+
+function obtenerProveedor($idProveedores) {
+    global $db;
+
+    $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores` WHERE `idProveedores` = ?";
+    $stm = $db->prepare($query);
+    $stm->bindParam(1, $idProveedores);
+    $stm->execute();
+
+    $resultado = $stm->fetch(PDO::FETCH_ASSOC);
+
+    echo json_encode($resultado);
+}
+
+function insertarProveedor() {
+    global $db;
+    $data = json_decode(file_get_contents("php://input"));
+
+    $query = "INSERT INTO `Proveedores` (`nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por`) VALUES (:nombre, :contacto, :direccion, :creado_por, :modificado_por)";
+    $stm = $db->prepare($query);
+    $stm->bindParam(":nombre", $data->nombre);
+    $stm->bindParam(":contacto", $data->contacto);
+    $stm->bindParam(":direccion", $data->direccion);
+    $stm->bindParam(":creado_por", $data->creado_por);
+    $stm->bindParam(":modificado_por", $data->modificado_por);
+
+    if ($stm->execute()) {
+        echo json_encode(array("message" => "Proveedor creado", "code" => "success"));
+    } else {
+        echo json_encode(array("message" => "Proveedor no creado", "code" => "danger"));
+    }
+}
+
+function actualizarProveedor() {
+    global $db;
+    $data = json_decode(file_get_contents("php://input"));
+
+    $query = "UPDATE `Proveedores` SET `nombre`= :nombre, `contacto`= :contacto, `direccion`= :direccion, `modificado_por`= :modificado_por WHERE `idProveedores`= :idProveedores";
+    $stm = $db->prepare($query);
+    $stm->bindParam(":idProveedores", $data->idProveedores);
+    $stm->bindParam(":nombre", $data->nombre);
+    $stm->bindParam(":contacto", $data->contacto);
+    $stm->bindParam(":direccion", $data->direccion);
+    $stm->bindParam(":modificado_por", $data->modificado_por);
+
+    if ($stm->execute()) {
+        echo json_encode(array("message" => "Proveedor actualizado", "code" => "success"));
+    } else {
+        echo json_encode(array("message" => "Proveedor no actualizado", "code" => "danger"));
+    }
+}
+
+function borrarProveedor() {
+    global $db;
+    $data = json_decode(file_get_contents("php://input"));
+
+    $query = "DELETE FROM `Proveedores` WHERE `idProveedores`= :idProveedores";
+    $stm = $db->prepare($query);
+    $stm->bindParam(":idProveedores", $data->idProveedores);
+
+    if ($stm->execute()) {
+        echo json_encode(array("message" => "Proveedor eliminado", "code" => "success"));
+    } else {
+        echo json_encode(array("message" => "Proveedor no eliminado", "code" => "danger"));
+    }
+}
+
 ?>
