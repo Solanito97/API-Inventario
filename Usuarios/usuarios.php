@@ -28,9 +28,9 @@ switch ($request_method) {
         break;
 
     case 'GET':
-        if (!empty($_GET["idusuario"])) {
-            $idusuario = intval($_GET["idusuario"]);
-            obtenerUsuario($idusuario);
+        if (!empty($_GET["idUsuarios"])) {
+            $idUsuarios = intval($_GET["idUsuarios"]);
+            obtenerUsuario($idUsuarios);
         } else {
             obtenerUsuarios();
         }
@@ -50,7 +50,7 @@ function obtenerUsuarios() {
     global $db;
 
     try {
-        $query = "SELECT `idusuario`, `nombre`, `email` FROM `Usuarios_Byron`";
+        $query = "SELECT `idUsuarios`, `nombre`, `email` FROM `Usuarios_Byron`";
         $stm = $db->prepare($query);
         $stm->execute();
 
@@ -63,13 +63,13 @@ function obtenerUsuarios() {
     }
 }
 
-function obtenerUsuario($idusuario) {
+function obtenerUsuario($idUsuarios) {
     global $db;
 
     try {
-        $query = "SELECT `idusuario`, `nombre`, `email` FROM `Usuarios_Byron` WHERE `idusuario` = ?";
+        $query = "SELECT `idUsuarios`, `nombre`, `email` FROM `Usuarios_Byron` WHERE `idUsuarios` = ?";
         $stm = $db->prepare($query);
-        $stm->bindParam(1, $idusuario);
+        $stm->bindParam(1, $idUsuarios);
         $stm->execute();
 
         $resultado = $stm->fetch(PDO::FETCH_ASSOC);
@@ -97,7 +97,7 @@ function insertarUsuario() {
     }
 
     try {
-        $query = "INSERT INTO `Usuarios_Byron` (`nombre`, `email`, `password`) VALUES (:nombre, :email, :password)";
+        $query = "INSERT INTO `Usuarios_Byron` (`idUsuarios`, `nombre`, `email`, `password`) VALUES (:idUsuarios, :nombre, :email, :password)";
         $stm = $db->prepare($query);
         $stm->bindParam(":nombre", $data->nombre);
         $stm->bindParam(":email", $data->email);
@@ -118,16 +118,16 @@ function actualizarUsuario() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    if (empty($data->idusuario) || empty($data->nombre) || empty($data->email) || empty($data->password)) {
+    if (empty($data->idUsuarios) || empty($data->nombre) || empty($data->email) || empty($data->password)) {
         http_response_code(400);
         echo json_encode(array("message" => "Datos incompletos"));
         return;
     }
 
     try {
-        $query = "UPDATE `Usuarios_Byron` SET `nombre` = :nombre, `email` = :email, `password` = :password WHERE `idusuario` = :idusuario";
+        $query = "UPDATE `Usuarios_Byron` SET `nombre` = :nombre, `email` = :email, `password` = :password WHERE `idUsuarios` = :idUsuarios";
         $stm = $db->prepare($query);
-        $stm->bindParam(":idusuario", $data->idusuario);
+        $stm->bindParam(":idUsuarios", $data->idUsuarios);
         $stm->bindParam(":nombre", $data->nombre);
         $stm->bindParam(":email", $data->email);
         $stm->bindParam(":password", $data->password);
@@ -147,16 +147,16 @@ function borrarUsuario() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    if (empty($data->idusuario)) {
+    if (empty($data->idUsuarios)) {
         http_response_code(400);
         echo json_encode(array("message" => "ID de usuario no proporcionado"));
         return;
     }
 
     try {
-        $query = "DELETE FROM `Usuarios_Byron` WHERE `idusuario` = :idusuario";
+        $query = "DELETE FROM `Usuarios_Byron` WHERE `idUsuarios` = :idUsuarios";
         $stm = $db->prepare($query);
-        $stm->bindParam(":idusuario", $data->idusuario);
+        $stm->bindParam(":idUsuarios", $data->idUsuarios);
 
         if ($stm->execute()) {
             echo json_encode(array("message" => "Usuario eliminado", "code" => "success"));
