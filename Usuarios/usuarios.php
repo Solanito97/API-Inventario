@@ -97,7 +97,7 @@ function insertarUsuario() {
     }
 
     try {
-        $query = "INSERT INTO `Usuarios_Byron` (`idUsuarios`, `nombre`, `email`, `password`) VALUES (:idUsuarios, :nombre, :email, :password)";
+        $query = "INSERT INTO `Usuarios_Byron` (`nombre`, `email`, `password`) VALUES (:nombre, :email, :password)";
         $stm = $db->prepare($query);
         $stm->bindParam(":nombre", $data->nombre);
         $stm->bindParam(":email", $data->email);
