@@ -1,5 +1,4 @@
 <?php
-
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: PUT, POST, DELETE, GET, OPTIONS');
@@ -50,44 +49,70 @@ switch ($request_method) {
 function obtenerProveedores() {
     global $db;
 
-    $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores`";
-    $stm = $db->prepare($query);
-    $stm->execute();
+    try {
+        $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores_Byron`";
+        $stm = $db->prepare($query);
+        $stm->execute();
 
-    $resultado = $stm->fetchAll(PDO::FETCH_ASSOC);
+        $resultado = $stm->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode($resultado);
+        echo json_encode($resultado);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al obtener proveedores", "error" => $e->getMessage()));
+    }
 }
 
 function obtenerProveedor($idProveedores) {
     global $db;
 
-    $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores` WHERE `idProveedores` = ?";
-    $stm = $db->prepare($query);
-    $stm->bindParam(1, $idProveedores);
-    $stm->execute();
+    try {
+        $query = "SELECT `idProveedores`, `nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por` FROM `Proveedores_Byron` WHERE `idProveedores` = ?";
+        $stm = $db->prepare($query);
+        $stm->bindParam(1, $idProveedores);
+        $stm->execute();
 
-    $resultado = $stm->fetch(PDO::FETCH_ASSOC);
+        $resultado = $stm->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode($resultado);
+        if ($resultado) {
+            echo json_encode($resultado);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "Proveedor no encontrado"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al obtener el proveedor", "error" => $e->getMessage()));
+    }
 }
 
 function insertarProveedor() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "INSERT INTO `Proveedores` (`nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por`) VALUES (:nombre, :contacto, :direccion, :creado_por, :modificado_por)";
-    $stm = $db->prepare($query);
-    $stm->bindParam(":nombre", $data->nombre);
-    $stm->bindParam(":contacto", $data->contacto);
-    $stm->bindParam(":direccion", $data->direccion);
-    $stm->bindParam(":creado_por", $data->creado_por);
-    $stm->bindParam(":modificado_por", $data->modificado_por);
+    if (empty($data->nombre)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "Datos incompletos"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Proveedor creado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Proveedor no creado", "code" => "danger"));
+    try {
+        $query = "INSERT INTO `Proveedores_Byron` (`nombre`, `contacto`, `direccion`, `creado_por`, `modificado_por`) VALUES (:nombre, :contacto, :direccion, :creado_por, :modificado_por)";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":nombre", $data->nombre);
+        $stm->bindParam(":contacto", $data->contacto);
+        $stm->bindParam(":direccion", $data->direccion);
+        $stm->bindParam(":creado_por", $data->creado_por);
+        $stm->bindParam(":modificado_por", $data->modificado_por);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Proveedor creado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Proveedor no creado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al crear el proveedor", "error" => $e->getMessage()));
     }
 }
 
@@ -95,18 +120,30 @@ function actualizarProveedor() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "UPDATE `Proveedores` SET `nombre`= :nombre, `contacto`= :contacto, `direccion`= :direccion, `modificado_por`= :modificado_por WHERE `idProveedores`= :idProveedores";
-    $stm = $db->prepare($query);
-    $stm->bindParam(":idProveedores", $data->idProveedores);
-    $stm->bindParam(":nombre", $data->nombre);
-    $stm->bindParam(":contacto", $data->contacto);
-    $stm->bindParam(":direccion", $data->direccion);
-    $stm->bindParam(":modificado_por", $data->modificado_por);
+    if (empty($data->idProveedores) || empty($data->nombre)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "Datos incompletos"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Proveedor actualizado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Proveedor no actualizado", "code" => "danger"));
+    try {
+        $query = "UPDATE `Proveedores_Byron` SET `nombre` = :nombre, `contacto` = :contacto, `direccion` = :direccion, `creado_por` = :creado_por, `modificado_por` = :modificado_por WHERE `idProveedores` = :idProveedores";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":idProveedores", $data->idProveedores);
+        $stm->bindParam(":nombre", $data->nombre);
+        $stm->bindParam(":contacto", $data->contacto);
+        $stm->bindParam(":direccion", $data->direccion);
+        $stm->bindParam(":creado_por", $data->creado_por);
+        $stm->bindParam(":modificado_por", $data->modificado_por);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Proveedor actualizado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Proveedor no actualizado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al actualizar el proveedor", "error" => $e->getMessage()));
     }
 }
 
@@ -114,15 +151,25 @@ function borrarProveedor() {
     global $db;
     $data = json_decode(file_get_contents("php://input"));
 
-    $query = "DELETE FROM `Proveedores` WHERE `idProveedores`= :idProveedores";
-    $stm = $db->prepare($query);
-    $stm->bindParam(":idProveedores", $data->idProveedores);
+    if (empty($data->idProveedores)) {
+        http_response_code(400);
+        echo json_encode(array("message" => "ID de proveedor no proporcionado"));
+        return;
+    }
 
-    if ($stm->execute()) {
-        echo json_encode(array("message" => "Proveedor eliminado", "code" => "success"));
-    } else {
-        echo json_encode(array("message" => "Proveedor no eliminado", "code" => "danger"));
+    try {
+        $query = "DELETE FROM `Proveedores_Byron` WHERE `idProveedores` = :idProveedores";
+        $stm = $db->prepare($query);
+        $stm->bindParam(":idProveedores", $data->idProveedores);
+
+        if ($stm->execute()) {
+            echo json_encode(array("message" => "Proveedor eliminado", "code" => "success"));
+        } else {
+            echo json_encode(array("message" => "Proveedor no eliminado", "code" => "danger"));
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "Error al eliminar el proveedor", "error" => $e->getMessage()));
     }
 }
-
 ?>
